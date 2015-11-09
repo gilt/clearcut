@@ -1,0 +1,47 @@
+{
+  "name": "clearcut",
+  "version": "0.0.1",
+  "description": "A utility for wrapping the browser console logging mechanisms.",
+  "keywords": [
+    "browser",
+    "console",
+    "log",
+    "logging",
+    "wrapper",
+    "utility"
+  ],
+  "author": "Gilt Tech <gilt-tech@gilt.com>",
+  "maintainers": [
+    {
+      "name": "Andrew Powell",
+      "email": "andrew@shellscape.org"
+    }
+  ],
+  "main": "./dist/gumshoe.js",
+  "bugs": {
+    "url": "http://github.com/gilt/clearcut/issues"
+  },
+  "homepage": "https://github.com/gilt/clearcut",
+  "licenses": [
+    {
+      "type": "MIT",
+      "url": "http://github.com/gilt/clearcut/blob/master/LICENSE"
+    }
+  ],
+  "repository": {
+    "type": "git",
+    "url": "http://github.com/gilt/clearcut.git"
+  },
+  "scripts": {
+    "test": "gulp test"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "chai": "^3.3.0",
+    "gulp": "^3.8.10",
+    "gulp-jshint": "^1.9.0",
+    "gulp-mocha": "^2.0.0",
+    "gulp-mocha-phantomjs": "^0.10.1",
+    "jshint-stylish": "^2.0.1"
+  }
+}
