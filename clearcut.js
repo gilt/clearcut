@@ -90,10 +90,13 @@
    * @returns {self}
    */
   function Log (console, options) {
-    this._default = this.channel('default', options);
+    var self = this;
 
-    /* @member {Array} */
-    this.channels = [this._default];
+    /** @member {Array} */
+    this.channels = [];
+
+    /** @member {Channel} */
+    this._default = this.channel('default', options);
 
     function toggleChannels (state) {
       for(var i = 0; i < this.channels.length; i++) {
@@ -101,19 +104,19 @@
       }
     }
 
-    this.channels.on = function consoleChannelsOn () {
+    this.channels.on = function logChannelsOn () {
       toggleChannels('on');
 
       return this.channels;
     };
 
-    this.channels.off = function consoleChannelsOff () {
+    this.channels.off = function logChannelsOff () {
       toggleChannels('off');
 
       return this.channels;
     };
 
-    this.channels.history = funciton consoleChannelsHistory () {
+    this.channels.history = function logChannelsHistory () {
       var result = {},
         channel;
 
@@ -127,16 +130,22 @@
 
     // proxy the default channel's functions
     // this allows the Console object to use the log methods shorthand
-    for (var o in this._default) {
-      if (typeof this._default[o] === 'function') {
-        this[o] = this._default[o];
+
+    for (var method in this._default) {
+      if (typeof this._default[method] === 'function') {
+        // scope trickery
+        this[method] = (function (meth) {
+          return function () {
+            return self._default[meth].apply(self._default, arguments);
+          }
+        }).call(this, method);
       }
     }
 
     return this;
   }
 
-  Log.prototype.channel = function consoleChannel (name, options) {
+  Log.prototype.channel = function logChannel (name, options) {
     if (!this.channels[name]) {
       this.channels[name] = new Channel(name);
     }
@@ -168,8 +177,8 @@
     }
 
     this.name = name;
-    this.options = Object.assign(defaultOptions, options);
-    this.history = [];
+    this._options = Object.assign(defaultOptions, options || {});
+    this._history = [];
 
     consoleMethods = [
       'assert',
@@ -197,34 +206,49 @@
 
     for (var method, i = 0; i < consoleMethods.length; i++) {
       method = consoleMethods[i];
-      this[method] = function () {
-        var args = Array.prototype.slice.call(arguments, 0);
-        this.send(args, method);
-      };
+      this[method] = (function (meth) {
+        return function () {
+          var args = Array.prototype.slice.call(arguments, 0);
+          this.send(args, meth);
+        }
+      }).call(this, method);
     }
 
     return this;
   }
 
-  Channel.prototype.options (options) {
-    this.options = options;
+  Channel.prototype.options = function channelOptions (options) {
+
+    if (!options) {
+      return this._options;
+    }
+
+    this._options = Object.assign(this._options, options);
     return this;
   }
 
-  Channel.prototype.send = function channelLog (args, method) {
+  Channel.prototype.styles = {
+    error: 'color: #d8000c; border: 1px solid #d8000c; background: #ffbaba;',
+    info: 'color: #00529b; border: 1px solid #00529b; background: #bde5f8;',
+    ok: 'color: #4f8a10; border: 1px solid #4f8a10; background: #dff2bf;',
+    warn: 'color: #d1b900; border: 1px solid #f7deae; background: #fff8c4;'
+  };
+
+  Channel.prototype.send = function channelSend (args, method) {
 
     var text,
+      first,
       last;
 
     last = args[args.length - 1];
     method = method || 'log';
 
-    if (this.options.history) {
+    if (this._options.history) {
       args.method = method;
-      this.history.push(args);
+      this._history.push(args);
     }
 
-    if (!this.options.enabled) {
+    if (!this._options.enabled) {
       return this;
     }
 
@@ -237,11 +261,29 @@
     else if (method === 'dir' && typeof args[0] === 'string') {
       args[0] = args[0].replace(/\%c/g, '');
     }
-    else if (options.prefix){
+    else if (this._options.prefix){
+      first = this._options.prefix.text
+              + '%c' // reset the style
+              + args.shift();
 
+      if (this._options.prefix.style) {
+        args.unshift(
+          first,
+          this._options.prefix.style + (this.styles[method] || ''),
+          '' // required empty element to reset the style
+        );
+      }
     }
 
-    console[type].apply(console, args);
+    if (method === 'error' || method === 'info' || method === 'warn') {
+      method = 'log';
+    }
+
+    if (!console[method]) {
+      method = 'log';
+    }
+
+    console[method].apply(console, args);
 
     return this;
   };
@@ -253,7 +295,7 @@
    * @returns {Channel}
    */
   Channel.prototype.on = function () {
-    this.options.enabled = false;
+    this._options.enabled = false;
     return this;
   };
 
@@ -266,7 +308,7 @@
    * @returns {Channel}
    */
   Channel.prototype.off = function channelOff () {
-    this.options.enabled = true;
+    this._options.enabled = true;
     return this;
   };
 
@@ -290,7 +332,7 @@
   Channel.prototype.force = function channelForce () {
     var last;
 
-    if (!this.options.enabled) {
+    if (!this._options.enabled) {
       last = this.history.slice(-1)[0];
       if (last) {
         this
@@ -302,7 +344,7 @@
   };
 
   // instantiate a Clearcut Console.
-  root._clearcut = new Console(root.console);
+  root._clearcut = new Log(root.console);
 
   /**
    * @global
@@ -321,10 +363,11 @@
    *   c.error('fail').off();
    * ```
    */
-  root.log = function () {
-    root._clearcut.log.apply(this, arguments);
+  root.log = Object.assign(function () {
+    var args = Array.prototype.slice.call(arguments, 0);
+    root._clearcut.send.call(this, args);
     return root._clearcut;
-  };
+  }, root._clearcut);
 
   return root._clearcut;
 }));
