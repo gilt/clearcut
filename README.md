@@ -2,6 +2,10 @@
 
 A Javascript utility for wrapping the browser console logging mechanisms.
 
+## Beautiful Output
+
+![Clearcut Screenshot](screenshot?raw=true "Clearcut Screenshot")
+
 ## Provisions
 
 Clearcut provides several enhancements over the standard console;

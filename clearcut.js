@@ -15,6 +15,7 @@
  *  - https://github.com/jbail/lumberjack
  *  - http://www.paulirish.com/2009/log-a-lightweight-wrapper-for-consolelog
  */
+ /* globals define: false */
 (function (root, factory) {
   if (typeof define === 'function' && define.amd) {
     // AMD. Register as an anonymous module.
@@ -89,7 +90,7 @@
    *
    * @returns {self}
    */
-  function Log (console, options) {
+  function ClearcutLog (console, options) {
     var self = this;
 
     /** @member {Array} */
@@ -134,10 +135,11 @@
     for (var method in this._default) {
       if (typeof this._default[method] === 'function') {
         // scope trickery
+        /* jshint loopfunc: true */
         this[method] = (function (meth) {
           return function () {
             return self._default[meth].apply(self._default, arguments);
-          }
+          };
         }).call(this, method);
       }
     }
@@ -145,9 +147,9 @@
     return this;
   }
 
-  Log.prototype.channel = function logChannel (name, options) {
+  ClearcutLog.prototype.channel = function logChannel (name, options) {
     if (!this.channels[name]) {
-      this.channels[name] = new Channel(name);
+      this.channels[name] = new ClearcutChannel(name);
     }
 
     return this.channels[name];
@@ -161,7 +163,7 @@
    *
    * @returns {Self}
    */
-  function Channel (name, options) {
+  function ClearcutChannel (name, options) {
     var defaultOptions = {
         history: true,
         enabled: true
@@ -206,18 +208,19 @@
 
     for (var method, i = 0; i < consoleMethods.length; i++) {
       method = consoleMethods[i];
+      /* jshint loopfunc: true */
       this[method] = (function (meth) {
         return function () {
           var args = Array.prototype.slice.call(arguments, 0);
           this.send(args, meth);
-        }
+        };
       }).call(this, method);
     }
 
     return this;
   }
 
-  Channel.prototype.options = function channelOptions (options) {
+  ClearcutChannel.prototype.options = function channelOptions (options) {
 
     if (!options) {
       return this._options;
@@ -225,23 +228,41 @@
 
     this._options = Object.assign(this._options, options);
     return this;
-  }
+  };
 
-  Channel.prototype.styles = {
+  ClearcutChannel.prototype.styles = {
     error: 'color: #d8000c; border: 1px solid #d8000c; background: #ffbaba;',
     info: 'color: #00529b; border: 1px solid #00529b; background: #bde5f8;',
     ok: 'color: #4f8a10; border: 1px solid #4f8a10; background: #dff2bf;',
     warn: 'color: #d1b900; border: 1px solid #f7deae; background: #fff8c4;'
   };
 
-  Channel.prototype.send = function channelSend (args, method) {
+  ClearcutChannel.prototype.send = function channelSend (args, method) {
 
     var text,
       first,
-      last;
+      last,
+      isString = false,
+      isError = false;
 
     last = args[args.length - 1];
     method = method || 'log';
+    isError = args[0] instanceof Error;
+    isString = typeof args[0] === 'string' || args[0] instanceof String;
+
+    if (isError) {
+      first = args.shift();
+      first = first.stack.trim();
+
+      if (args.length > 1) {
+        first += '\n\n';
+      }
+
+      args.unshift(first);
+
+      isError = false;
+      isString = true;
+    }
 
     if (this._options.history) {
       args.method = method;
@@ -252,25 +273,33 @@
       return this;
     }
 
-    if(!isColorSupported()) {
+    if(!isColorSupported() && isString) {
       text = args[0].toString(); // be sure
       text = text.replace(/\%c/g, '');
       args[0] = text;
     }
+
     // remove any %c directives if people get silly using console.dir
-    else if (method === 'dir' && typeof args[0] === 'string') {
+    else if (method === 'dir' && isString) {
       args[0] = args[0].replace(/\%c/g, '');
     }
     else if (this._options.prefix){
+      /* jshint -W014: false */
       first = this._options.prefix.text
-              + '%c' // reset the style
-              + args.shift();
+              + '%c'; // reset the style
+
+      if (isString) {
+        first += args.shift();
+      }
+      else if (!isError) {
+        first += 'type: ' + Object.prototype.toString.call(args[0]).slice(8, -1);
+      }
 
       if (this._options.prefix.style) {
         args.unshift(
           first,
           this._options.prefix.style + (this.styles[method] || ''),
-          '' // required empty element to reset the style
+          (isString && !isError) ? '' : 'font-style: italic;' // required empty element to reset the style
         );
       }
     }
@@ -294,7 +323,7 @@
    *
    * @returns {Channel}
    */
-  Channel.prototype.on = function () {
+  ClearcutChannel.prototype.on = function () {
     this._options.enabled = false;
     return this;
   };
@@ -307,7 +336,7 @@
    *
    * @returns {Channel}
    */
-  Channel.prototype.off = function channelOff () {
+  ClearcutChannel.prototype.off = function channelOff () {
     this._options.enabled = true;
     return this;
   };
@@ -318,7 +347,7 @@
    *
    * @returns {Array}
    */
-  Channel.prototype.history = function channelOn () {
+  ClearcutChannel.prototype.history = function channelOn () {
     return this.history;
   };
 
@@ -329,7 +358,7 @@
    *
    * @returns {Channel}
    */
-  Channel.prototype.force = function channelForce () {
+  ClearcutChannel.prototype.force = function channelForce () {
     var last;
 
     if (!this._options.enabled) {
@@ -343,15 +372,15 @@
     }
   };
 
-  // instantiate a Clearcut Console.
-  root._clearcut = new Log(root.console);
+  // instantiate a Clearcut Log.
+  root.__clearcut__ = new ClearcutLog(root.console);
 
   /**
    * @global
    * @function log
    * @desc     Global helper function.
    *
-   * @returns {Console}
+   * @returns {ClearcutLog}
    *
    * @example
    * `log('foo');`
@@ -365,9 +394,9 @@
    */
   root.log = Object.assign(function () {
     var args = Array.prototype.slice.call(arguments, 0);
-    root._clearcut.send.call(this, args);
-    return root._clearcut;
-  }, root._clearcut);
+    root.__clearcut__.send.call(this, args);
+    return root.__clearcut__;
+  }, root.__clearcut__);
 
   return root._clearcut;
 }));
