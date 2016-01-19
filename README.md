@@ -4,7 +4,7 @@ A Javascript utility for wrapping the browser console logging mechanisms.
 
 ## Beautiful Output
 
-![Clearcut Screenshot](screenshot?raw=true "Clearcut Screenshot")
+![Clearcut Screenshot](screenshot.png?raw=true "Clearcut Screenshot")
 
 ## Provisions
 
