@@ -1,4 +1,4 @@
-# Clearcut
+# Clearcut [![Build Status](https://travis-ci.org/shellscape/clearcut.svg?branch=master)](https://travis-ci.org/shellscape/clearcut)
 
 A Javascript utility for wrapping the browser console logging mechanisms.
 
@@ -17,3 +17,4 @@ Clearcut provides several enhancements over the standard console;
 - Fallbacks for browsers that don't support string replacement or styles in the
   console.
 - Automatical line prefixing.
+- Transports, for sending log data to other places.

@@ -1,6 +1,7 @@
 
 var gulp = require('gulp'),
-  path = require('path');
+  path = require('path'),
+  mocha = require('gulp-mocha-phantomjs');
 
 require('colors');
 
@@ -12,7 +13,7 @@ gulp.task('dependencies', function() {
     .pipe(david.reporter);
 });
 
-gulp.task('javascript', ['dependencies'], function () {
+gulp.task('lint', ['dependencies'], function () {
   var jshint = require('gulp-jshint'),
     jshintrc = path.join(__dirname, '.jshintrc'),
     failReporter = require('./test/lib/jshint-fail-reporter')(gulp);
@@ -27,6 +28,11 @@ gulp.task('javascript', ['dependencies'], function () {
     .pipe(jshint.reporter('jshint-stylish'));
 });
 
-gulp.task('default', ['javascript'], function (done) {
+gulp.task('test', ['lint'], function () {
+  return gulp.src('test/runner.html')
+    .pipe(mocha());
+});
+
+gulp.task('default', ['test'], function (done) {
   done();
 });

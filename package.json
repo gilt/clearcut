@@ -17,7 +17,7 @@
       "email": "andrew@shellscape.org"
     }
   ],
-  "main": "./dist/gumshoe.js",
+  "main": "clearcut.js",
   "bugs": {
     "url": "http://github.com/gilt/clearcut/issues"
   },
@@ -39,10 +39,11 @@
   "devDependencies": {
     "chai": "^3.3.0",
     "gulp": "^3.9.0",
-    "gulp-david": "^0.3.4",
+    "gulp-david": "^0.4.1",
     "gulp-jshint": "^2.0.0",
     "gulp-mocha": "^2.0.0",
-    "gulp-mocha-phantomjs": "^0.10.1",
+    "gulp-mocha-phantomjs": "^0.11.0",
+    "jshint": "^2.9.1",
     "jshint-stylish": "^2.0.1"
   }
 }
