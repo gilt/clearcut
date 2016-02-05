@@ -39,7 +39,7 @@
   "devDependencies": {
     "chai": "^3.3.0",
     "gulp": "^3.9.0",
-    "gulp-david": "^0.4.1",
+    "gulp-david": "^0.3.0",
     "gulp-jshint": "^2.0.0",
     "gulp-mocha": "^2.0.0",
     "gulp-mocha-phantomjs": "^0.11.0",
