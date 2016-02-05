@@ -25,9 +25,38 @@ describe('Clearcut', function() {
     expect(window.log).to.exist;
   });
 
-  // it('should contain all of the methods of the console object', function () {
-  //
-  // });
+  it('should contain all of the methods of the console object', function () {
+    var consoleMethods = [
+      'assert',
+      'clear',
+      'count',
+      'debug',
+      'dir',
+      'dirxml',
+      'error',
+      'exception',
+      'group',
+      'groupCollapsed',
+      'groupEnd',
+      'info',
+      'log',
+      'profile',
+      'profileEnd',
+      'table',
+      'time',
+      'timeEnd',
+      'timeStamp',
+      'trace',
+      'warn'
+    ];
+
+    consoleMethods.forEach(function (method) {
+      if (console[method]) {
+        // console.log('asserting log.' + method, typeof log[method]);
+        expect(log[method]).to.exist;
+      }
+    });
+  });
 
   it('should call methods successfully', function () {
     log('hello');

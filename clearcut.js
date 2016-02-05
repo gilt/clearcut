@@ -77,9 +77,10 @@
   // it's 2015, we don't care about older versions of these browsers.
   // older versions of the browsers considered 'supporting color' in the console
   // will simply display the %c token.
+  // also don't want to be assuming color support if in PhantomJS
   function isColorSupported() {
     var ua = navigator.userAgent;
-    return /(firefox|chrome|safari)/i.test(ua);
+    return /(firefox|chrome|safari)/i.test(ua) && !/phantomjs/i.test(ua);
   }
 
   /**
