@@ -83,6 +83,20 @@
     return /(firefox|chrome|safari)/i.test(ua) && !/phantomjs/i.test(ua);
   }
 
+  function proxy (scope, channel) {
+    for (var method in channel) {
+      if (typeof channel[method] === 'function') {
+        // scope trickery
+        /* jshint loopfunc: true */
+        scope[method] = (function (meth) {
+          return function () {
+            return channel[meth].apply(channel, arguments);
+          };
+        }).call(scope, method);
+      }
+    }
+  }
+
   /**
    * The Clearcut Log class.
    * @class
@@ -94,11 +108,14 @@
   function ClearcutLog (console, options) {
     var self = this;
 
-    /** @member {Array} */
-    this.channels = [];
+    /** @member {Object} */
+    this.channels = {};
+
+    /** @member {Object} */
+    this.transports = {};
 
     /** @member {Channel} */
-    this._default = this.channel('default', options);
+    this._default = this.channel('default', options, this);
 
     function toggleChannels (state) {
       for(var i = 0; i < this.channels.length; i++) {
@@ -133,27 +150,30 @@
     // proxy the default channel's functions
     // this allows the Console object to use the log methods shorthand
 
-    for (var method in this._default) {
-      if (typeof this._default[method] === 'function') {
-        // scope trickery
-        /* jshint loopfunc: true */
-        this[method] = (function (meth) {
-          return function () {
-            return self._default[meth].apply(self._default, arguments);
-          };
-        }).call(this, method);
-      }
-    }
+    proxy(this, this._default);
 
     return this;
   }
 
   ClearcutLog.prototype.channel = function logChannel (name, options) {
     if (!this.channels[name]) {
-      this.channels[name] = new ClearcutChannel(name);
+      this.channels[name] = new ClearcutChannel(name, options, this);
     }
 
     return this.channels[name];
+  };
+
+  ClearcutLog.prototype.transport = function logTransport (name, options) {
+    if (!this.transports[name]) {
+      if (!options.send || typeof options.send !== 'function') {
+        throw new Error('Clearcut: Transports must have a function \'fn\'.');
+      }
+
+      this.transports[name] = options;
+    }
+    else {
+      throw new Error('Clearcut: A transport of the same name has already been assigned; ' + name);
+    }
   };
 
   /**
@@ -164,7 +184,7 @@
    *
    * @returns {Self}
    */
-  function ClearcutChannel (name, options) {
+  function ClearcutChannel (name, options, log) {
     var defaultOptions = {
         history: true,
         enabled: true
@@ -179,6 +199,7 @@
       return this;
     }
 
+    this.log = log;
     this.name = name;
     this._options = Object.assign(defaultOptions, options || {});
     this._history = [];
@@ -244,12 +265,13 @@
       first,
       last,
       isString = false,
-      isError = false;
+      isError = false,
+      transport;
 
     last = args[args.length - 1];
     method = method || 'log';
     isError = args[0] instanceof Error;
-    isString = typeof args[0] === 'string' || args[0] instanceof String;
+    isString = (typeof args[0] === 'string' || args[0] instanceof String);
 
     if (isError) {
       first = args.shift();
@@ -314,6 +336,23 @@
     }
 
     console[method].apply(console, args);
+
+    for(var name in this.log.transports) {
+      transport = this.log.transports[name];
+
+      if (transport) {
+        // if channel is undefined, or the channel name is '*' then all
+        // channels use the transport
+        // otherwise, apply only to specific channels
+        // transports should handle throttling, batching, etc.
+        if (!transport.channel ||
+            (transport.channel &&
+             transport.channel.name &&
+             (transport.channel.name === this.name || transport.channel.anem === '*'))){
+          transport.send.apply(this, args);
+        }
+      }
+    }
 
     return this;
   };
@@ -393,11 +432,13 @@
    *   c.error('fail').off();
    * ```
    */
-  root.log = Object.assign(function () {
+  root.log = function () {
     var args = Array.prototype.slice.call(arguments, 0);
     root.__clearcut__.send.call(this, args);
     return root.__clearcut__;
-  }, root.__clearcut__);
+  };
 
-  return root._clearcut;
+  proxy(root.log, root.__clearcut__);
+
+  return root.__clearcut__;
 }));

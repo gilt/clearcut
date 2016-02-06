@@ -25,6 +25,12 @@ describe('Clearcut', function() {
     expect(window.log).to.exist;
   });
 
+  it('should contain custom methods', function () {
+    expect(log.channel).to.exist;
+    expect(log.send).to.exist;
+    expect(log.transport).to.exist;
+  });
+
   it('should contain all of the methods of the console object', function () {
     var consoleMethods = [
       'assert',

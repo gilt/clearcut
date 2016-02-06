@@ -9,8 +9,7 @@ gulp.task('dependencies', function() {
   var david = require('gulp-david');
 
   return gulp.src(path.join(__dirname,'package.json'))
-    .pipe(david())
-    .pipe(david.reporter);
+    .pipe(david());
 });
 
 gulp.task('lint', ['dependencies'], function () {
